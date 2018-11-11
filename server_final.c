@@ -12,6 +12,7 @@
 
 int counter = 20;
 int socket_second = 0;
+struct SemaphoreList* head = NULL;
 
 struct SocketNumbers{
     int soc_id;
@@ -21,23 +22,27 @@ struct SocketNumbers{
 struct SemaphoreList{
     int sem_id;
     int value;
-    struct SocketNumbers socketNumbers;
+    struct SocketNumbers *socketNumbers;
 
     struct SemaphoreList *next;
 };
 
-void push(struct SemaphoreList** head_ref, int semid, int value, struct SocketNumbers* sock_head)
+void push(struct SemaphoreList *head_ref, int semid, int value, struct SocketNumbers *sock_head)
 {
     struct SemaphoreList* new_node = (struct SemaphoreList*) malloc(sizeof(struct SemaphoreList));
     new_node->sem_id  = semid;
     new_node->value  = value;
-    new_node->socketNumbers = *sock_head;
+    new_node->socketNumbers = sock_head;
     new_node->next = NULL;
-
-    struct SemaphoreList* last = (*head_ref);
-    while (last->next != NULL)
-        last = last->next;
-    last->next = new_node;
+    if(head_ref==NULL){
+        head_ref = new_node;
+        (head_ref)->next = NULL;
+    } else{
+        struct SemaphoreList* last = head_ref;
+        while (last->next != NULL)
+            last = last->next;
+        last->next = new_node;
+    }
 }
 
 void printList(struct SemaphoreList *head)
@@ -51,8 +56,8 @@ void printList(struct SemaphoreList *head)
     }
 }
 
-int create_semaphore(struct SemaphoreList** head){
-    printf("in server semaphore");
+int create_semaphore(){
+    printf("in server semaphore\n");
 
     push(head, counter, 1, NULL);
 
@@ -69,7 +74,7 @@ int semaphore_v(int semaphore_id){
 
 }
 
-int semaphore_destroy(int semaphore_id, struct SemaphoreList* head){
+int semaphore_destroy(int semaphore_id){
 
 }
 
@@ -77,34 +82,34 @@ int semaphore_destroy(int semaphore_id, struct SemaphoreList* head){
 void infinite_chat(int socket_number){
 
     char buffer[64];
-    int result =0;
-
-    struct SemaphoreList* head = NULL;
-
-    while(1){
-
+    int result = 0;
+    int counttemp = 5;
+    while(counttemp>0){
         memset(buffer, 0 , sizeof(buffer));
-
         //read message from client and copy in buffer
         read(socket_number, buffer, sizeof(buffer));
-
+        printf("Message from Client: %c\n", buffer[0]);
         switch (buffer[0]){
             case 's':
-                result = create_semaphore(&head);
+                result = create_semaphore();
+                printf("s: %d\n", result);
                 break;
             case 'p':
                 result = semaphore_p(buffer[1]);
+                printf("p: %d\n", result);
                 break;
             case 'v':
                 result = semaphore_v(buffer[1]);
+                printf("v: %d\n", result);
                 break;
             case 'd':
-                result = semaphore_destroy(buffer[1],&head);
+                result = semaphore_destroy(buffer[1]);
+                printf("d: %d\n", result);
                 break;
             default:
                 break;
         }
-        //printf("From Client: %s",buffer);
+        counttemp--;
     }
 }
 
@@ -113,8 +118,8 @@ void infinite_chat(int socket_number){
 
 int main(int argc, char *argv[]){
 
-
     int listenport = 1234;
+    printf("Surver is running on %d\n", listenport);
     if(argc > 1){
         listenport = atoi(argv[1]);
     }

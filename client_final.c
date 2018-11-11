@@ -80,10 +80,16 @@ int main() {
         printf("Cannot create semaphore mutex1.\n");
         _exit(1);
     }  //if
+    else{
+        printf("Created semaphore 20");
+    }
     if ((mutex2 = sem_create()) < 0) {
         _exit(2);
         printf("Cannot create semaphore mutex2.\n");
     }  // if
+    else{
+        printf("Created semaphore 21");
+    }
 
     // basic checks
     sem_P(mutex2);
