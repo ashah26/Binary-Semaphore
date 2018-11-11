@@ -11,7 +11,6 @@
 #include <netinet/in.h>
 
 int counter = 20;
-int socket_second = 0;
 struct SemaphoreList* head = NULL;
 
 struct SocketNumbers{
@@ -79,46 +78,10 @@ int semaphore_destroy(int semaphore_id){
 }
 
 
-void infinite_chat(int socket_number){
-
-    char buffer[64];
-    int result = 0;
-    int counttemp = 5;
-    while(counttemp>0){
-        memset(buffer, 0 , sizeof(buffer));
-        //read message from client and copy in buffer
-        read(socket_number, buffer, sizeof(buffer));
-        printf("Message from Client: %c\n", buffer[0]);
-        switch (buffer[0]){
-            case 's':
-                result = create_semaphore();
-                printf("s: %d\n", result);
-                break;
-            case 'p':
-                result = semaphore_p(buffer[1]);
-                printf("p: %d\n", result);
-                break;
-            case 'v':
-                result = semaphore_v(buffer[1]);
-                printf("v: %d\n", result);
-                break;
-            case 'd':
-                result = semaphore_destroy(buffer[1]);
-                printf("d: %d\n", result);
-                break;
-            default:
-                break;
-        }
-        counttemp--;
-    }
-}
-
-
-
 
 int main(int argc, char *argv[]){
 
-    int listenport = 1234;
+    int listenport = 8080;
     printf("Surver is running on %d\n", listenport);
     if(argc > 1){
         listenport = atoi(argv[1]);
@@ -153,15 +116,68 @@ int main(int argc, char *argv[]){
     }
 
     //Accept a connection
-    struct sockaddr_in client_address;
-    socklen_t client_address_len;
 
-    socket_second = accept(socket_first, (struct sockaddr*) &client_address, &client_address_len);
-    if(socket_second < 0){
-        perror("Cannot accept");
-        exit(1);
+    char buffer[64];
+    int buffer_count;
+    int result = 0;
+    int counttemp = 5;
+
+
+    while(counttemp > 0){
+        struct sockaddr_in client_address;
+        socklen_t client_address_len;
+        int socket_second;
+        socket_second = accept(socket_first, (struct sockaddr*) &client_address, &client_address_len);
+        if(socket_second < 0){
+            perror("Cannot accept");
+            exit(1);
+        }
+
+        buffer_count = 0;
+//        memset(buffer, 0 , sizeof(buffer));
+
+        //buffer to read message from buffer
+        bzero(buffer, sizeof(buffer));
+
+        //read message from client and copy in buffer
+        read(socket_second, buffer, sizeof(buffer));
+        printf("Message from Client: %c\n", buffer[0]);
+
+        switch (buffer[0]){
+            case 's':
+                result = create_semaphore();
+                //TODO: write to client
+                //buffer to write message from server
+                bzero(buffer, sizeof(buffer));
+
+                buffer[buffer_count++] = result;
+                write(socket_second, buffer,sizeof(buffer));
+
+                printf("s: %d\n", result);
+                break;
+            case 'p':
+                result = semaphore_p(buffer[1]);
+                printf("p: %d\n", result);
+                break;
+            case 'v':
+                result = semaphore_v(buffer[1]);
+                printf("v: %d\n", result);
+                break;
+            case 'd':
+                result = semaphore_destroy(buffer[1]);
+                printf("d: %d\n", result);
+                break;
+            default:
+                break;
+        }
+        counttemp--;
     }
-    infinite_chat(socket_second);
-    close(socket_first);
-}
+
+
+
+
+        close(socket_first);
+    }
+
+
 
