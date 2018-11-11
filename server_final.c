@@ -26,25 +26,25 @@ struct SemaphoreList{
     struct SemaphoreList *next;
 };
 
-void push(struct SemaphoreList *head_ref, int semid, int value, struct SocketNumbers *sock_head)
+void push(int semid, int value, struct SocketNumbers *sock_head)
 {
     struct SemaphoreList* new_node = (struct SemaphoreList*) malloc(sizeof(struct SemaphoreList));
     new_node->sem_id  = semid;
     new_node->value  = value;
     new_node->socketNumbers = sock_head;
     new_node->next = NULL;
-    if(head_ref==NULL){
-        head_ref = new_node;
-        (head_ref)->next = NULL;
+    if(head==NULL){
+        head = new_node;
+        (head)->next = NULL;
     } else{
-        struct SemaphoreList* last = head_ref;
+        struct SemaphoreList* last = head;
         while (last->next != NULL)
             last = last->next;
         last->next = new_node;
     }
 }
 
-void printList(struct SemaphoreList *head)
+void printList()
 {
     // printf("\n printing linked list:::\n");
     struct SemaphoreList *node = head->next;
@@ -58,7 +58,7 @@ void printList(struct SemaphoreList *head)
 int create_semaphore(){
     printf("in server semaphore\n");
 
-    push(head, counter, 1, NULL);
+    push(counter, 1, NULL);
 
     return counter++;
 
