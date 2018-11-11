@@ -36,16 +36,11 @@ int main() {
         printf("Cannot create semaphore mutex1.\n");
         _exit(1);
     }  //if
-    else{
-        printf("Created semaphore 20");
-    }
+
     if ((mutex2 = sem_create()) < 0) {
         _exit(2);
         printf("Cannot create semaphore mutex2.\n");
     }  // if
-    else{
-        printf("Created semaphore 21");
-    }
 
     // basic checks
     sem_P(mutex2);
@@ -115,7 +110,7 @@ int sem_create() {
     }
 
     client_address.sin_family = AF_INET;
-    short peerPort = 8080;
+    short peerPort = 8081;
     client_address.sin_port = htons(peerPort);
 
     //Write a resolved IP address of server to address structure
@@ -140,11 +135,12 @@ int sem_create() {
     read(socket_first,buffer, sizeof(buffer));
     close(socket_first);
 
+//    printf("Sem ID returned: %d \n",buffer[0]);
     return  buffer[0];
 
 
 
-//    printf("Sem ID returned: %d",buffer[0]);
+//
     // add your own code
     // Should return a sem_id if call succeeded and -1 otherwise
 }
@@ -152,7 +148,51 @@ int sem_create() {
 int sem_P(int sem_id) {
 
 
-    socket_create('p',sem_id);
+    //Create a socket
+    int socket_first = socket(AF_INET, SOCK_STREAM, 0);
+    if(socket_first < 0){
+        perror("Cannot create socket");
+        exit(1);
+    }
+
+    //Fill the address of server
+    struct sockaddr_in client_address;
+    int client_address_len;
+    memset(&client_address, 0, sizeof(client_address));
+    char* peerHost = "localhost";
+
+    //resolve server address(convert from symbolic name to IP number)
+    struct hostent *host = gethostbyname(peerHost);
+    if (host == NULL){
+        perror("Cannot define host address");
+        exit(1);
+    }
+
+    client_address.sin_family = AF_INET;
+    short peerPort = 8081;
+    client_address.sin_port = htons(peerPort);
+
+    //Write a resolved IP address of server to address structure
+    memmove(&(client_address.sin_addr.s_addr), host->h_addr_list[0],4);
+
+    //Connect to remote server
+    int remote = connect(socket_first, (struct sockaddr*) &client_address, sizeof(client_address));
+    if (remote < 0){
+        perror("Cannot connect");
+        exit(1);
+    }
+
+    //write a message in buffer and accordingly perform operations
+    char buffer[64];
+    bzero(buffer, sizeof(buffer));
+    buffer[0] = 'p';
+    buffer[1] = sem_id;
+
+    write(socket_first, buffer, sizeof(buffer));
+
+
+
+//    socket_create('p',sem_id);
 
     // add your own code
     // Should return 0 if call succeeded and -1 otherwise
