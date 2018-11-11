@@ -11,43 +11,72 @@
 #include <netinet/in.h>
 
 int counter = 20;
-struct SemaphoreList* head = NULL;
 
-struct SocketNumbers{
+
+struct SocketList{
     int soc_id;
-    struct SocketNumbers *next_sock;
+    struct SocketList *next_sock;
 };
 
 struct SemaphoreList{
     int sem_id;
     int value;
-    struct SocketNumbers *socketNumbers;
+    struct SocketList *socketHead;
 
     struct SemaphoreList *next;
 };
 
-void push(int semid, int value, struct SocketNumbers *sock_head)
+void push(struct  SemaphoreList** head, int semid, int value)
 {
-    struct SemaphoreList* new_node = (struct SemaphoreList*) malloc(sizeof(struct SemaphoreList));
-    new_node->sem_id  = semid;
-    new_node->value  = value;
-    new_node->socketNumbers = sock_head;
-    new_node->next = NULL;
-    if(head==NULL){
-        head = new_node;
-        (head)->next = NULL;
-    } else{
-        struct SemaphoreList* last = head;
-        while (last->next != NULL)
-            last = last->next;
-        last->next = new_node;
-    }
+//    struct SemaphoreList* new_node = (struct SemaphoreList*) malloc(sizeof(struct SemaphoreList));
+//    new_node->sem_id  = semid;
+//    new_node->value  = value;
+//    new_node->socketNumbers = sock_head;
+//    new_node->next = NULL;
+//    if(head==NULL){
+//        head = new_node;
+//        (head)->next = NULL;
+//    } else{
+//        struct SemaphoreList* last = head;
+//        while (last->next != NULL)
+//            last = last->next;
+//        last->next = new_node;
+        struct SemaphoreList* new_node = (struct SemaphoreList*) malloc(sizeof(struct SemaphoreList));
+        new_node->sem_id  = counter;
+        new_node->value  = 1;
+        new_node->socketHead = NULL;
+        new_node->next = *head;
+        *head = new_node;
+
+//    }
 }
 
-void printList()
+
+void pushSocket(struct SemaphoreList** node, int socketNumber)
+{
+    struct SocketList* new_socket = (struct SocketList*) malloc(sizeof(struct SocketList));
+    new_socket->soc_id = socketNumber;
+    new_socket->next_sock = (*node)->socketHead;
+    (*node)->socketHead = new_socket;
+
+
+}
+
+struct SemaphoreList* findSemaphore(struct SemaphoreList* head, int id){
+    struct SemaphoreList* node = head;
+    while(node!=NULL){
+        if(node->sem_id == id){
+            return node;
+        }
+        node = node->next;
+    }
+    return NULL;
+}
+
+void printSemaphoreList(struct SemaphoreList* head)
 {
     // printf("\n printing linked list:::\n");
-    struct SemaphoreList *node = head->next;
+    struct SemaphoreList *node = head;
     while (node != NULL)
     {
         printf(" sem_id: %d, valueS: %d \n ", node->sem_id, node->value);
@@ -55,21 +84,45 @@ void printList()
     }
 }
 
-int create_semaphore(){
-    printf("in server semaphore\n");
+void printSocketList(struct SocketList* head, struct SemaphoreList* semHead)
+{
+    // printf("\n printing linked list:::\n");
+    struct SocketList *node = head;
+    while (node != NULL)
+    {
+        printf(" socketNumber: %d sem_id: %d  value: %d\n ", node->soc_id, semHead->sem_id, semHead->value);
+        node = node->next_sock;
+    }
+}
 
-    push(counter, 1, NULL);
+
+int create_semaphore(struct SemaphoreList** head){
+//    printf("in server semaphore\n");
+
+    push(head, counter, 1);
 
     return counter++;
 
 
 }
 
-int semaphore_p(int semaphore_id){
+int semaphore_p(struct SemaphoreList** head, int semaphore_id, int socketNumber){
+
+    printf("Request from sem id: %d, for socketNumber: %d \n",semaphore_id,socketNumber );
+    struct SemaphoreList* node =  findSemaphore(*head, semaphore_id);
+    if(node != NULL){
+        if(node-> value == 1){
+            node->value = 0;
+        }else{
+            pushSocket(&node, socketNumber);
+        }
+    }
+    printSocketList(node->socketHead, node);
+    return 0;
 
 }
 
-int semaphore_v(int semaphore_id){
+int semaphore_v(int semaphore_id, int socketNumber){
 
 }
 
@@ -81,7 +134,10 @@ int semaphore_destroy(int semaphore_id){
 
 int main(int argc, char *argv[]){
 
-    int listenport = 8080;
+
+    struct SemaphoreList* head = NULL;
+
+    int listenport = 8081;
     printf("Surver is running on %d\n", listenport);
     if(argc > 1){
         listenport = atoi(argv[1]);
@@ -120,7 +176,7 @@ int main(int argc, char *argv[]){
     char buffer[64];
     int buffer_count;
     int result = 0;
-    int counttemp = 5;
+    int counttemp = 100;
 
 
     while(counttemp > 0){
@@ -145,27 +201,26 @@ int main(int argc, char *argv[]){
 
         switch (buffer[0]){
             case 's':
-                result = create_semaphore();
-                //TODO: write to client
+                result = create_semaphore(&head);
                 //buffer to write message from server
                 bzero(buffer, sizeof(buffer));
 
                 buffer[buffer_count++] = result;
                 write(socket_second, buffer,sizeof(buffer));
 
-                printf("s: %d\n", result);
+//                printf("s: %d\n", result);
                 break;
             case 'p':
-                result = semaphore_p(buffer[1]);
-                printf("p: %d\n", result);
+                result = semaphore_p(&head, buffer[1], socket_second);
+//                printf("p: %d\n", result);
                 break;
             case 'v':
-                result = semaphore_v(buffer[1]);
-                printf("v: %d\n", result);
+                result = semaphore_v(buffer[1], socket_second);
+//                printf("v: %d\n", result);
                 break;
             case 'd':
                 result = semaphore_destroy(buffer[1]);
-                printf("d: %d\n", result);
+//                printf("d: %d\n", result);
                 break;
             default:
                 break;
