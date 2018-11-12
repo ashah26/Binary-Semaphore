@@ -13,11 +13,13 @@
 int counter = 20;
 
 
+//Defining a linked list for Socket Numbers in a Semaphore
 struct SocketList{
     int soc_id;
     struct SocketList *next_sock;
 };
 
+//Defining a linked list for Semaphore Creations
 struct SemaphoreList{
     int sem_id;
     int value;
@@ -26,21 +28,9 @@ struct SemaphoreList{
     struct SemaphoreList *next;
 };
 
+//for pushing into Semaphore list
 void push(struct  SemaphoreList** head, int semid, int value)
 {
-//    struct SemaphoreList* new_node = (struct SemaphoreList*) malloc(sizeof(struct SemaphoreList));
-//    new_node->sem_id  = semid;
-//    new_node->value  = value;
-//    new_node->socketNumbers = sock_head;
-//    new_node->next = NULL;
-//    if(head==NULL){
-//        head = new_node;
-//        (head)->next = NULL;
-//    } else{
-//        struct SemaphoreList* last = head;
-//        while (last->next != NULL)
-//            last = last->next;
-//        last->next = new_node;
         struct SemaphoreList* new_node = (struct SemaphoreList*) malloc(sizeof(struct SemaphoreList));
         new_node->sem_id  = counter;
         new_node->value  = 1;
@@ -48,10 +38,9 @@ void push(struct  SemaphoreList** head, int semid, int value)
         new_node->next = *head;
         *head = new_node;
 
-//    }
 }
 
-
+//for pushing the socket number into SocketList
 void pushSocket(struct SemaphoreList** node, int socketNumber)
 {
     struct SocketList* new_socket = (struct SocketList*) malloc(sizeof(struct SocketList));
@@ -62,6 +51,7 @@ void pushSocket(struct SemaphoreList** node, int socketNumber)
 
 }
 
+//for finding semaphore from sem_id
 struct SemaphoreList* findSemaphore(struct SemaphoreList* head, int id){
     struct SemaphoreList* node = head;
     while(node!=NULL){
@@ -73,6 +63,7 @@ struct SemaphoreList* findSemaphore(struct SemaphoreList* head, int id){
     return NULL;
 }
 
+// delete the last socket from the socket list as the sem_v request comes
 int releaseSocket(struct SemaphoreList** node){
     if((*node)->socketHead != NULL){
         struct SocketList* current_node = (*node)->socketHead;
@@ -95,6 +86,8 @@ int releaseSocket(struct SemaphoreList** node){
     return 1;
 }
 
+
+//printing the semaphore list
 void printSemaphoreList(struct SemaphoreList* head)
 {
     // printf("\n printing linked list:::\n");
@@ -111,6 +104,8 @@ void printSemaphoreList(struct SemaphoreList* head)
 
 }
 
+
+//printing socket list
 void printSocketList(struct SocketList* head, struct SemaphoreList* semHead)
 {
     // printf("\n printing linked list:::\n");
@@ -127,15 +122,16 @@ void printSocketList(struct SocketList* head, struct SemaphoreList* semHead)
 
 }
 
-
+//Create a semaphore to return the sem_id
 int create_semaphore(struct SemaphoreList** head){
-//    printf("in server semaphore\n");
 
     //TODO: Error checking
+
     push(head, counter, 1);
     return counter++;
 }
 
+//
 int semaphore_p(struct SemaphoreList** head, int semaphore_id, int socketNumber){
 
     //TODO: error checking
@@ -147,6 +143,7 @@ int semaphore_p(struct SemaphoreList** head, int semaphore_id, int socketNumber)
         }
         pushSocket(&node, socketNumber);
     }else{
+        printf("Semaphore with id '%d' does not exist \n", semaphore_id);
         return  -1;
     }
     printSocketList(node->socketHead, node);
@@ -179,7 +176,28 @@ int semaphore_v(struct SemaphoreList** head, int semaphore_id, int socketNumber)
 
 }
 
-int semaphore_destroy(int semaphore_id){
+int semaphore_destroy(struct SemaphoreList** head, int semaphore_id){
+    printf("Request to destroy semaphare with id: %d \n", semaphore_id);
+    if((*head) != NULL){
+            if((*head)->sem_id == semaphore_id){
+                (*head) = (*head)->next;
+                return 0;
+            }
+            struct SemaphoreList* current = (*head);
+            struct SemaphoreList* nextNode = (*head)->next;
+
+            while (nextNode != NULL){
+                if(nextNode->sem_id == semaphore_id){
+                    current->next = nextNode->next;
+                    free(nextNode);
+                    return 0;
+                }
+            }
+    }
+    printf("Semaphore Does not exist with id: %d \n",semaphore_id);
+
+    return -1;
+
 
 }
 
@@ -272,7 +290,8 @@ int main(int argc, char *argv[]){
 //                printf("v: %d\n", result);
                 break;
             case 'd':
-                result = semaphore_destroy(buffer[1]);
+                result = semaphore_destroy(&head,buffer[1]);
+                printSemaphoreList(head);
 //                printf("d: %d\n", result);
                 break;
             default:
