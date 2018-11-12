@@ -19,16 +19,6 @@ int sem_V(int sem_id);
 int sem_destroy(int sem_id);
 
 
-//Socket creation and server connection
-int socket_create(char input,int id){
-
-
-
-
-}
-
-
-
 int main() {
     int mutex1, mutex2; //semaphores
     int pid; // process ID
@@ -87,9 +77,7 @@ int main() {
 
 int sem_create() {
 
-
-//    socket_create('s',0);
-//Create a socket
+    //Create a socket
     int socket_first = socket(AF_INET, SOCK_STREAM, 0);
     if(socket_first < 0){
         perror("Cannot create socket");
@@ -128,20 +116,16 @@ int sem_create() {
     bzero(buffer, sizeof(buffer));
     buffer[0] = 's';
     buffer[1] = 0;
-
     write(socket_first, buffer, sizeof(buffer));
-//    memset(&buffer, 0, sizeof(buffer));
+
+    //initialize a buffer to read response from server
     bzero(buffer, sizeof(buffer));
     read(socket_first,buffer, sizeof(buffer));
-    close(socket_first);
 
-//    printf("Sem ID returned: %d \n",buffer[0]);
+   //close the socket
+    close(socket_first);
     return  buffer[0];
 
-
-
-//
-    // add your own code
     // Should return a sem_id if call succeeded and -1 otherwise
 }
 
@@ -187,14 +171,16 @@ int sem_P(int sem_id) {
     bzero(buffer, sizeof(buffer));
     buffer[0] = 'p';
     buffer[1] = sem_id;
-
     write(socket_first, buffer, sizeof(buffer));
 
+    //initialize a buffer to read response from server
+    bzero(buffer, sizeof(buffer));
+    read(socket_first,buffer, sizeof(buffer));
+
+    //close the socket
     close(socket_first);
+    return buffer[0];
 
-//    socket_create('p',sem_id);
-
-    // add your own code
     // Should return 0 if call succeeded and -1 otherwise
 }
 
@@ -240,17 +226,16 @@ int sem_V(int sem_id) {
     bzero(buffer, sizeof(buffer));
     buffer[0] = 'v';
     buffer[1] = sem_id;
-
     write(socket_first, buffer, sizeof(buffer));
 
+    //initialize a buffer to read response from server
+    bzero(buffer, sizeof(buffer));
+    read(socket_first,buffer, sizeof(buffer));
+
+    //close the socket
     close(socket_first);
+    return buffer[0];
 
-
-
-
-//    socket_create('v', sem_id);
-
-    // add your own code
     // Should return 0 if call succeeded and -1 otherwise
 }
 
@@ -295,14 +280,16 @@ int sem_destroy(int sem_id) {
     bzero(buffer, sizeof(buffer));
     buffer[0] = 'd';
     buffer[1] = sem_id;
-
     write(socket_first, buffer, sizeof(buffer));
+
+    //initialize a buffer to read response from server
+    bzero(buffer, sizeof(buffer));
+    read(socket_first,buffer, sizeof(buffer));
+
+    //close the socket
     close(socket_first);
+    return buffer[0];
 
-
-//    socket_create('d', sem_id);
-
-    // add your own code
     // Should return 0 if call succeeded and -1 otherwise
 }
 

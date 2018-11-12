@@ -32,8 +32,8 @@ struct SemaphoreList{
 void push(struct  SemaphoreList** head, int semid, int value)
 {
         struct SemaphoreList* new_node = (struct SemaphoreList*) malloc(sizeof(struct SemaphoreList));
-        new_node->sem_id  = counter;
-        new_node->value  = 1;
+        new_node->sem_id  = semid;
+        new_node->value  = value;
         new_node->socketHead = NULL;
         new_node->next = *head;
         *head = new_node;
@@ -90,7 +90,7 @@ int releaseSocket(struct SemaphoreList** node){
 //printing the semaphore list
 void printSemaphoreList(struct SemaphoreList* head)
 {
-    // printf("\n printing linked list:::\n");
+    printf("\n ::: Printing Semaphore List :::\n");
     struct SemaphoreList *node = head;
     if(node == NULL){
         printf("Semaphore List is empty\n ");
@@ -108,7 +108,7 @@ void printSemaphoreList(struct SemaphoreList* head)
 //printing socket list
 void printSocketList(struct SocketList* head, struct SemaphoreList* semHead)
 {
-    // printf("\n printing linked list:::\n");
+    printf("\n ::: Printing Socket List :::\n");
     struct SocketList *node = head;
     if(node == NULL){
         printf("SocketList is empty sem_id: %d  value: %d \n " ,semHead->sem_id, semHead->value);
@@ -125,17 +125,14 @@ void printSocketList(struct SocketList* head, struct SemaphoreList* semHead)
 //Create a semaphore to return the sem_id
 int create_semaphore(struct SemaphoreList** head){
 
-    //TODO: Error checking
-
     push(head, counter, 1);
     return counter++;
 }
 
-//
+//semaphore_p implementation
 int semaphore_p(struct SemaphoreList** head, int semaphore_id, int socketNumber){
 
-    //TODO: error checking
-    printf("Request from sem id: %d, for socketNumber: %d \n",semaphore_id,socketNumber );
+    printf("Request for sem_p from sem id '%d', for socketNumber '%d' \n",semaphore_id,socketNumber );
     struct SemaphoreList* node =  findSemaphore(*head, semaphore_id);
     if(node != NULL){
         if(node-> value == 1){
@@ -151,10 +148,10 @@ int semaphore_p(struct SemaphoreList** head, int semaphore_id, int socketNumber)
 
 }
 
+//semaphore_v implementation
 int semaphore_v(struct SemaphoreList** head, int semaphore_id, int socketNumber){
 
-    //TODO: Error checking
-    printf("Release: Request from sem id: %d\n",semaphore_id );
+    printf("Request for sem_v from sem id: %d\n",semaphore_id );
     struct SemaphoreList* node =  findSemaphore(*head, semaphore_id);
     if(node != NULL){
         if(node->value == 1){
@@ -169,13 +166,11 @@ int semaphore_v(struct SemaphoreList** head, int semaphore_id, int socketNumber)
     }else{
         return  -1;
     }
-
     printSocketList(node->socketHead, node);
     return 0;
-
-
 }
 
+//semaphore_destroy implementation
 int semaphore_destroy(struct SemaphoreList** head, int semaphore_id){
     printf("Request to destroy semaphare with id: %d \n", semaphore_id);
     if((*head) != NULL){
@@ -195,10 +190,7 @@ int semaphore_destroy(struct SemaphoreList** head, int semaphore_id){
             }
     }
     printf("Semaphore Does not exist with id: %d \n",semaphore_id);
-
     return -1;
-
-
 }
 
 
@@ -243,14 +235,11 @@ int main(int argc, char *argv[]){
     }
 
     //Accept a connection
-
     char buffer[64];
     int buffer_count;
     int result = 0;
-    int counttemp = 100;
 
-
-    while(counttemp > 0){
+    while(1){
         struct sockaddr_in client_address;
         socklen_t client_address_len;
         int socket_second;
@@ -259,9 +248,6 @@ int main(int argc, char *argv[]){
             perror("Cannot accept");
             exit(1);
         }
-
-        buffer_count = 0;
-//        memset(buffer, 0 , sizeof(buffer));
 
         //buffer to read message from buffer
         bzero(buffer, sizeof(buffer));
@@ -273,38 +259,43 @@ int main(int argc, char *argv[]){
         switch (buffer[0]){
             case 's':
                 result = create_semaphore(&head);
+
                 //buffer to write message from server
                 bzero(buffer, sizeof(buffer));
-
-                buffer[buffer_count++] = result;
+                buffer[0] = result;
                 write(socket_second, buffer,sizeof(buffer));
-
-//                printf("s: %d\n", result);
                 break;
             case 'p':
                 result = semaphore_p(&head, buffer[1], socket_second);
-//                printf("p: %d\n", result);
+
+                //buffer to write message from server
+                bzero(buffer, sizeof(buffer));
+                buffer[0] = result;
+                write(socket_second, buffer,sizeof(buffer));
                 break;
             case 'v':
                 result = semaphore_v(&head, buffer[1], socket_second);
-//                printf("v: %d\n", result);
+
+                //buffer to write message from server
+                bzero(buffer, sizeof(buffer));
+                buffer[0] = result;
+                write(socket_second, buffer,sizeof(buffer));
                 break;
             case 'd':
                 result = semaphore_destroy(&head,buffer[1]);
+
+                //buffer to write message from server
+                bzero(buffer, sizeof(buffer));
+                buffer[0] = result;
+                write(socket_second, buffer,sizeof(buffer));
                 printSemaphoreList(head);
-//                printf("d: %d\n", result);
                 break;
             default:
                 break;
         }
-        counttemp--;
+
     }
-
-
-
-
-        close(socket_first);
-    }
+}
 
 
 
