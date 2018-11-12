@@ -73,56 +73,109 @@ struct SemaphoreList* findSemaphore(struct SemaphoreList* head, int id){
     return NULL;
 }
 
+int releaseSocket(struct SemaphoreList** node){
+    if((*node)->socketHead != NULL){
+        struct SocketList* current_node = (*node)->socketHead;
+        if(current_node->next_sock == NULL){
+            (*node)->socketHead = NULL;
+        }else{
+            current_node = current_node->next_sock;
+            struct SocketList* previous = (*node)->socketHead;
+            while (current_node->next_sock  != NULL){
+                previous = previous->next_sock;
+                current_node = current_node->next_sock;
+            }
+            previous->next_sock = NULL;
+            free(current_node);
+        }
+    }else{
+        return 0;
+    }
+
+    return 1;
+}
+
 void printSemaphoreList(struct SemaphoreList* head)
 {
     // printf("\n printing linked list:::\n");
     struct SemaphoreList *node = head;
-    while (node != NULL)
-    {
-        printf(" sem_id: %d, valueS: %d \n ", node->sem_id, node->value);
-        node = node->next;
+    if(node == NULL){
+        printf("Semaphore List is empty\n ");
+    }else{
+        while (node != NULL)
+        {
+            printf(" sem_id: %d, valueS: %d \n ", node->sem_id, node->value);
+            node = node->next;
+        }
     }
+
 }
 
 void printSocketList(struct SocketList* head, struct SemaphoreList* semHead)
 {
     // printf("\n printing linked list:::\n");
     struct SocketList *node = head;
-    while (node != NULL)
-    {
-        printf(" socketNumber: %d sem_id: %d  value: %d\n ", node->soc_id, semHead->sem_id, semHead->value);
-        node = node->next_sock;
+    if(node == NULL){
+        printf("SocketList is empty sem_id: %d  value: %d \n " ,semHead->sem_id, semHead->value);
+    }else{
+        while (node != NULL)
+        {
+            printf(" socketNumber: %d sem_id: %d  value: %d\n ", node->soc_id, semHead->sem_id, semHead->value);
+            node = node->next_sock;
+        }
     }
+
 }
 
 
 int create_semaphore(struct SemaphoreList** head){
 //    printf("in server semaphore\n");
 
+    //TODO: Error checking
     push(head, counter, 1);
-
     return counter++;
-
-
 }
 
 int semaphore_p(struct SemaphoreList** head, int semaphore_id, int socketNumber){
 
+    //TODO: error checking
     printf("Request from sem id: %d, for socketNumber: %d \n",semaphore_id,socketNumber );
     struct SemaphoreList* node =  findSemaphore(*head, semaphore_id);
     if(node != NULL){
         if(node-> value == 1){
             node->value = 0;
-        }else{
-            pushSocket(&node, socketNumber);
         }
+        pushSocket(&node, socketNumber);
+    }else{
+        return  -1;
     }
     printSocketList(node->socketHead, node);
     return 0;
 
 }
 
-int semaphore_v(int semaphore_id, int socketNumber){
+int semaphore_v(struct SemaphoreList** head, int semaphore_id, int socketNumber){
+
+    //TODO: Error checking
+    printf("Release: Request from sem id: %d\n",semaphore_id );
+    struct SemaphoreList* node =  findSemaphore(*head, semaphore_id);
+    if(node != NULL){
+        if(node->value == 1){
+            printf("Semaphore is available to use!! \n");
+        }else{
+            releaseSocket(&node);
+            if(node->socketHead == NULL){
+                node->value = 1;
+            }
+        }
+
+    }else{
+        return  -1;
+    }
+
+    printSocketList(node->socketHead, node);
+    return 0;
+
 
 }
 
@@ -215,7 +268,7 @@ int main(int argc, char *argv[]){
 //                printf("p: %d\n", result);
                 break;
             case 'v':
-                result = semaphore_v(buffer[1], socket_second);
+                result = semaphore_v(&head, buffer[1], socket_second);
 //                printf("v: %d\n", result);
                 break;
             case 'd':
