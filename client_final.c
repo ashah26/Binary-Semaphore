@@ -190,7 +190,7 @@ int sem_P(int sem_id) {
 
     write(socket_first, buffer, sizeof(buffer));
 
-
+    close(socket_first);
 
 //    socket_create('p',sem_id);
 
@@ -200,7 +200,55 @@ int sem_P(int sem_id) {
 
 int sem_V(int sem_id) {
 
-    socket_create('v', sem_id);
+
+    //Create a socket
+    int socket_first = socket(AF_INET, SOCK_STREAM, 0);
+    if(socket_first < 0){
+        perror("Cannot create socket");
+        exit(1);
+    }
+
+    //Fill the address of server
+    struct sockaddr_in client_address;
+    int client_address_len;
+    memset(&client_address, 0, sizeof(client_address));
+    char* peerHost = "localhost";
+
+    //resolve server address(convert from symbolic name to IP number)
+    struct hostent *host = gethostbyname(peerHost);
+    if (host == NULL){
+        perror("Cannot define host address");
+        exit(1);
+    }
+
+    client_address.sin_family = AF_INET;
+    short peerPort = 8081;
+    client_address.sin_port = htons(peerPort);
+
+    //Write a resolved IP address of server to address structure
+    memmove(&(client_address.sin_addr.s_addr), host->h_addr_list[0],4);
+
+    //Connect to remote server
+    int remote = connect(socket_first, (struct sockaddr*) &client_address, sizeof(client_address));
+    if (remote < 0){
+        perror("Cannot connect");
+        exit(1);
+    }
+
+    //write a message in buffer and accordingly perform operations
+    char buffer[64];
+    bzero(buffer, sizeof(buffer));
+    buffer[0] = 'v';
+    buffer[1] = sem_id;
+
+    write(socket_first, buffer, sizeof(buffer));
+
+    close(socket_first);
+
+
+
+
+//    socket_create('v', sem_id);
 
     // add your own code
     // Should return 0 if call succeeded and -1 otherwise
@@ -208,8 +256,51 @@ int sem_V(int sem_id) {
 
 int sem_destroy(int sem_id) {
 
+    //Create a socket
+    int socket_first = socket(AF_INET, SOCK_STREAM, 0);
+    if(socket_first < 0){
+        perror("Cannot create socket");
+        exit(1);
+    }
 
-    socket_create('d', sem_id);
+    //Fill the address of server
+    struct sockaddr_in client_address;
+    int client_address_len;
+    memset(&client_address, 0, sizeof(client_address));
+    char* peerHost = "localhost";
+
+    //resolve server address(convert from symbolic name to IP number)
+    struct hostent *host = gethostbyname(peerHost);
+    if (host == NULL){
+        perror("Cannot define host address");
+        exit(1);
+    }
+
+    client_address.sin_family = AF_INET;
+    short peerPort = 8081;
+    client_address.sin_port = htons(peerPort);
+
+    //Write a resolved IP address of server to address structure
+    memmove(&(client_address.sin_addr.s_addr), host->h_addr_list[0],4);
+
+    //Connect to remote server
+    int remote = connect(socket_first, (struct sockaddr*) &client_address, sizeof(client_address));
+    if (remote < 0){
+        perror("Cannot connect");
+        exit(1);
+    }
+
+    //write a message in buffer and accordingly perform operations
+    char buffer[64];
+    bzero(buffer, sizeof(buffer));
+    buffer[0] = 'd';
+    buffer[1] = sem_id;
+
+    write(socket_first, buffer, sizeof(buffer));
+    close(socket_first);
+
+
+//    socket_create('d', sem_id);
 
     // add your own code
     // Should return 0 if call succeeded and -1 otherwise
